@@ -1,0 +1,8 @@
+douban.db
+douban.db-*
+douban_snapshot.db
+*.gz
+*.tar
+*.tar.gz
+.venv/
+__pycache__/
