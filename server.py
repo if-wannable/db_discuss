@@ -127,10 +127,14 @@ def api_author(
     ).fetchone())
 
     name_row = conn.execute(
-        "SELECT author_name, COUNT(*) AS c FROM posts "
-        "WHERE author_id = ? AND author_name <> '' "
-        "GROUP BY author_name ORDER BY c DESC LIMIT 1",
-        (author_id,),
+        """
+        SELECT author_name FROM posts
+        WHERE author_id = ? AND author_name <> '' AND author_name IS NOT NULL
+        ORDER BY CASE WHEN time = '' OR time = ? OR time IS NULL THEN '0000'
+                      ELSE substr(time, 1, 19) END DESC
+        LIMIT 1
+        """,
+        (author_id, _UNKNOWN),
     ).fetchone()
 
     grp_rows = conn.execute(
