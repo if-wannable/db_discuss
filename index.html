@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>豆瓣讨论查询</title>
+  <link rel="stylesheet" href="styles.css?v=8">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">豆</div>
+      <div>
+        <div class="brand-title">豆瓣讨论查询</div>
+        <div class="brand-subtitle">Douban Discussion</div>
+      </div>
+    </div>
+    <form class="search-box" id="searchForm" autocomplete="off">
+      <input id="authorInput" type="search" enterkeyhint="search" placeholder="用户 ID 或主页链接，如 https://www.douban.com/people/196402633/">
+      <div id="suggest" class="suggest"></div>
+      <button id="searchBtn" type="submit">查询</button>
+    </form>
+  </header>
+
+  <main class="container">
+    <section id="welcome" class="welcome">
+      <p>输入用户 ID，或粘贴豆瓣主页链接（如 <code>https://www.douban.com/people/196402633/</code>），查询历史发言（主帖 + 回复）。</p>
+      <div id="hotAuthors" class="hot-authors"></div>
+    </section>
+
+    <section id="result" class="result hidden">
+      <div class="author-card">
+        <div class="author-head">
+          <h1 id="authorName">-</h1>
+          <span id="authorId" class="author-id"></span>
+          <span class="author-actions">
+            <a id="homeBtn" class="button secondary compact" target="_blank" rel="noopener">豆瓣主页 ↗</a>
+            <a id="exportBtn" class="button secondary compact">导出 CSV</a>
+          </span>
+        </div>
+        <div class="metric-grid">
+          <div class="metric"><span class="metric-label">总发言</span><strong id="mTotal">-</strong></div>
+          <div class="metric"><span class="metric-label">主帖</span><strong id="mDisc">-</strong></div>
+          <div class="metric"><span class="metric-label">回复</span><strong id="mReply">-</strong></div>
+          <div class="metric"><span class="metric-label">时间范围</span><strong id="mRange" class="metric-range">-</strong></div>
+        </div>
+        <div id="groupChips" class="group-chips"></div>
+
+        <div class="filter-bar">
+          <div class="segmented" id="typeSeg" role="group" aria-label="类型筛选">
+            <button class="segment is-active" type="button" data-type="">全部</button>
+            <button class="segment" type="button" data-type="discussion">主帖</button>
+            <button class="segment" type="button" data-type="reply">回复</button>
+          </div>
+          <input id="keywordInput" class="keyword-input" type="search" placeholder="关键词过滤" enterkeyhint="search">
+          <div class="date-range">
+            <input id="minDate" type="date" title="开始日期">
+            <span class="date-sep">~</span>
+            <input id="maxDate" type="date" title="结束日期">
+          </div>
+          <button id="clearFilterBtn" class="button secondary compact" type="button">清除筛选</button>
+        </div>
+      </div>
+
+      <div class="list-head">
+        <div class="list-left">
+          <div id="postCount" class="status-line"></div>
+          <div class="segmented" id="orderSeg" role="group" aria-label="排序">
+            <button class="segment is-active" type="button" data-order="desc">倒序</button>
+            <button class="segment" type="button" data-order="asc">顺序</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button id="prevBtn" class="button secondary compact" type="button" disabled>上一页</button>
+          <input id="pageInput" class="page-input" type="number" min="1" aria-label="页码">
+          <span class="page-info">/ <span id="pageTotal"></span></span>
+          <button id="nextBtn" class="button secondary compact" type="button" disabled>下一页</button>
+        </div>
+      </div>
+
+      <ol id="postList" class="post-list"></ol>
+
+      <div class="list-foot">
+        <div class="toolbar">
+          <button id="prevBtn2" class="button secondary compact" type="button" disabled>上一页</button>
+          <input id="pageInput2" class="page-input" type="number" min="1" aria-label="页码">
+          <span class="page-info">/ <span id="pageTotal2"></span></span>
+          <button id="nextBtn2" class="button secondary compact" type="button" disabled>下一页</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <button id="backTop" class="back-top" type="button" aria-label="回到顶部">↑</button>
+
+  <div id="loading" class="loading hidden" aria-live="polite" aria-busy="true">
+    <div class="loading-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="loading-title">查询中</div>
+      <div class="loading-sub">正在读取发言，请稍候</div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js?v=6"></script>
+</body>
+</html>
