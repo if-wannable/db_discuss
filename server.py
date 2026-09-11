@@ -20,6 +20,7 @@ import threading
 from pathlib import Path
 
 from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -43,6 +44,14 @@ def get_conn() -> sqlite3.Connection:
 
 
 app = FastAPI(title="豆瓣讨论查询")
+
+# 允许 GitHub Pages 等跨域来源调用（只读公开查询服务）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
