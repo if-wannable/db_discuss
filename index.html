@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>豆瓣讨论查询</title>
+  <meta http-equiv="refresh" content="0; url=http://115.29.232.50/">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f6f7f9; color: #1f2328; }
+    .card { text-align: center; padding: 40px 48px; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; }
+    .card h1 { color: #3b7a3e; margin: 0 0 6px; font-size: 20px; }
+    .card p { color: #6b7280; margin: 0; font-size: 14px; }
+    .card a { color: #3b7a3e; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top-color: #3b7a3e; border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h1>豆瓣讨论查询</h1>
+    <p>正在跳转到查询服务…</p>
+    <p style="margin-top:12px"><a href="http://115.29.232.50/">如未自动跳转请点击此处</a></p>
+  </div>
+  <script>
+    location.replace("http://115.29.232.50/" + location.search + location.hash);
+  </script>
+</body>
+</html>

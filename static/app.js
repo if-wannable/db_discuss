@@ -1,7 +1,7 @@
 const app = {
   authorId: "",
   offset: 0,
-  limit: 200,
+  limit: 50,
   groupId: "",
   type: "",
   minTime: "",
@@ -21,6 +21,14 @@ function el(tag, cls, text) {
 }
 
 const URL_RE = /https?:\/\/[^\s"'<>]+/g;
+const PEOPLE_RE = /(?:https?:\/\/)?(?:www\.)?douban\.com\/people\/([^/?#]+)/i;
+
+function parseAuthorId(raw) {
+  const value = String(raw || "").trim();
+  const match = value.match(PEOPLE_RE);
+  if (match) return match[1].replace(/\/+$/, "");
+  return value.replace(/\/+$/, "");
+}
 
 function renderContent(container, text) {
   const parts = String(text || "").split(URL_RE);
@@ -52,7 +60,14 @@ function buildPost(p) {
   a.rel = "noopener";
   meta.appendChild(a);
 
+  if (p.author_name) {
+    meta.appendChild(el("span", "post-author", p.author_name));
+  }
+
   meta.appendChild(el("span", "post-time", p.time || ""));
+  if (p.ip) {
+    meta.appendChild(el("span", "post-ip", p.ip));
+  }
   meta.appendChild(el("span", "post-group", p.group_name || p.group_id || ""));
 
   li.appendChild(meta);
@@ -83,9 +98,17 @@ function buildParams(offset) {
 }
 
 async function fetchAuthor(id, offset) {
-  const res = await fetch("/api/author/" + encodeURIComponent(id) + "?" + buildParams(offset));
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return res.json();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const res = await fetch("/api/author/" + encodeURIComponent(id) + "?" + buildParams(offset), {
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function updateTypeSeg() {
@@ -172,15 +195,33 @@ function renderPager(d) {
   });
 }
 
+function setLoading(on) {
+  const box = $("#loading");
+  const btn = $("#searchBtn");
+  box.classList.toggle("hidden", !on);
+  btn.disabled = on;
+  btn.classList.toggle("is-loading", on);
+  btn.textContent = on ? "查询中" : "查询";
+}
+
 async function load(id, offset) {
   app.authorId = id;
   app.offset = offset;
-  const d = await fetchAuthor(id, offset);
-  renderSummary(d);
-  renderPosts(d.posts);
-  renderPager(d);
-  history.replaceState(null, "", "?author_id=" + encodeURIComponent(id));
-  window.scrollTo({ top: 0 });
+  setLoading(true);
+  try {
+    const d = await fetchAuthor(id, offset);
+    renderSummary(d);
+    renderPosts(d.posts);
+    renderPager(d);
+    history.replaceState(null, "", "?author_id=" + encodeURIComponent(id));
+    window.scrollTo({ top: 0 });
+  } catch (err) {
+    $("#welcome").classList.remove("hidden");
+    $("#result").classList.add("hidden");
+    $("#welcome p").textContent = "查询失败，请稍后重试。";
+  } finally {
+    setLoading(false);
+  }
 }
 
 function showSuggest(items) {
@@ -216,7 +257,7 @@ function resetFilter() {
 
 let suggestTimer = null;
 $("#authorInput").addEventListener("input", (e) => {
-  const v = e.target.value.trim();
+  const v = parseAuthorId(e.target.value);
   clearTimeout(suggestTimer);
   if (!v || !/^\d{3,}$/.test(v)) { showSuggest([]); return; }
   suggestTimer = setTimeout(async () => {
@@ -232,8 +273,10 @@ document.addEventListener("click", (e) => {
 });
 
 function doSearch() {
-  const id = $("#authorInput").value.trim();
+  const id = parseAuthorId($("#authorInput").value);
   if (!id) return;
+  $("#authorInput").value = id;
+  $("#suggest").classList.remove("show");
   resetFilter();
   load(id, 0);
 }
@@ -330,15 +373,15 @@ async function loadHot() {
   } catch (err) { /* ignore */ }
 }
 
-loadHot();
-
 function initFromUrl() {
   const params = new URLSearchParams(location.search);
-  const qid = params.get("author_id") || (location.hash.length > 1 ? location.hash.slice(1) : "");
+  const qid = parseAuthorId(params.get("author_id") || (location.hash.length > 1 ? location.hash.slice(1) : ""));
   if (qid) {
     $("#authorInput").value = qid;
     load(qid, 0).catch(() => {});
+    return;
   }
+  loadHot();
 }
 
 initFromUrl();

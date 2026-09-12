@@ -39,6 +39,9 @@ def get_conn() -> sqlite3.Connection:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA query_only=ON")
         conn.execute("PRAGMA busy_timeout=5000")
+        conn.execute("PRAGMA mmap_size=1073741824")
+        conn.execute("PRAGMA cache_size=-10000")
+        conn.execute("PRAGMA temp_store=MEMORY")
         _local.conn = conn
     return conn
 
@@ -62,14 +65,7 @@ def health():
 @app.get("/api/groups")
 def api_groups():
     rows = get_conn().execute(
-        """
-        SELECT g.group_id, g.name,
-               (SELECT COUNT(*) FROM topics t WHERE t.group_id = g.group_id) AS topics,
-               (SELECT COUNT(*) FROM posts p JOIN topics t ON t.url = p.url
-                WHERE t.group_id = g.group_id) AS posts
-        FROM groups g
-        ORDER BY posts DESC
-        """
+        "SELECT group_id, name, topics, posts FROM groups_cache ORDER BY posts DESC"
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -77,18 +73,9 @@ def api_groups():
 @app.get("/api/stats")
 def api_stats():
     conn = get_conn()
-    totals = dict(conn.execute(
-        "SELECT (SELECT COUNT(*) FROM topics), (SELECT COUNT(*) FROM posts), "
-        "(SELECT COUNT(DISTINCT author_id) FROM posts WHERE author_id <> '')"
-    ).fetchone())
-    top = conn.execute(
-        """
-        SELECT author_id, COUNT(*) AS posts, MAX(author_name) AS name
-        FROM posts WHERE author_id <> ''
-        GROUP BY author_id ORDER BY posts DESC LIMIT 20
-        """
-    ).fetchall()
-    return {"topics": totals[0], "posts": totals[1], "authors": totals[2], "top_authors": [dict(r) for r in top]}
+    totals = dict(conn.execute("SELECT * FROM stats_cache").fetchone())
+    top = conn.execute("SELECT * FROM top_authors_cache").fetchall()
+    return {"topics": totals["topics"], "posts": totals["posts"], "authors": totals["authors"], "top_authors": [dict(r) for r in top]}
 
 
 @app.get("/api/author/{author_id}")
@@ -139,11 +126,10 @@ def api_author(
         """
         SELECT author_name FROM posts
         WHERE author_id = ? AND author_name <> '' AND author_name IS NOT NULL
-        ORDER BY CASE WHEN time = '' OR time = ? OR time IS NULL THEN '0000'
-                      ELSE substr(time, 1, 19) END DESC
+        ORDER BY time_sort DESC
         LIMIT 1
         """,
-        (author_id, _UNKNOWN),
+        (author_id,),
     ).fetchone()
 
     grp_rows = conn.execute(
@@ -162,17 +148,18 @@ def api_author(
     posts = conn.execute(
         f"""
         SELECT p.seq, p.type, p.url, t.title, p.author_name, p.content,
-               p.time, p.quote, p.quote_author, t.group_id, g.name AS group_name
+               substr(p.time, 1, 19) AS time,
+               CASE WHEN length(p.time) > 19 THEN trim(substr(p.time, 20)) ELSE '' END AS ip,
+               p.quote, p.quote_author, t.group_id, g.name AS group_name
         FROM posts p
         JOIN topics t ON t.url = p.url
         LEFT JOIN groups g ON g.group_id = t.group_id
         WHERE {where}
-        ORDER BY CASE WHEN p.time = '' OR p.time = ? OR p.time IS NULL THEN '9999'
-                      ELSE substr(p.time, 1, 19) END {direction},
+        ORDER BY p.time_sort {direction},
                  p.seq {direction}
         LIMIT ? OFFSET ?
         """,
-        params + [_UNKNOWN, limit, offset],
+        params + [limit, offset],
     ).fetchall()
 
     return {
@@ -223,29 +210,30 @@ def api_author_export(
     rows = conn.execute(
         f"""
         SELECT p.type, t.title, p.url, p.author_id, p.author_name,
-               p.content, p.time, p.quote, p.quote_author,
+               p.content, substr(p.time, 1, 19) AS time,
+               CASE WHEN length(p.time) > 19 THEN trim(substr(p.time, 20)) ELSE '' END AS ip,
+               p.quote, p.quote_author,
                t.group_id, g.name AS group_name
         FROM posts p
         JOIN topics t ON t.url = p.url
         LEFT JOIN groups g ON g.group_id = t.group_id
         WHERE {where}
-        ORDER BY CASE WHEN p.time = '' OR p.time = ? OR p.time IS NULL THEN '9999'
-                      ELSE substr(p.time, 1, 19) END {direction},
+        ORDER BY p.time_sort {direction},
                  p.seq {direction}
         """,
-        params + [_UNKNOWN],
+        params,
     ).fetchall()
 
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow([
         "type", "discussion title", "url", "author_id", "author_name",
-        "content", "time", "quote", "quote_author", "group_id", "group_name",
+        "content", "time", "ip", "quote", "quote_author", "group_id", "group_name",
     ])
     for r in rows:
         w.writerow([
             r["type"], r["title"], r["url"], r["author_id"], r["author_name"],
-            r["content"], r["time"], r["quote"], r["quote_author"],
+            r["content"], r["time"], r["ip"], r["quote"], r["quote_author"],
             r["group_id"], r["group_name"],
         ])
 

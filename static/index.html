@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>豆瓣讨论查询</title>
-  <link rel="stylesheet" href="/static/styles.css?v=5">
+  <link rel="stylesheet" href="/static/styles.css?v=14">
 </head>
 <body>
   <header class="topbar">
@@ -16,7 +16,7 @@
       </div>
     </div>
     <form class="search-box" id="searchForm" autocomplete="off">
-      <input id="authorInput" type="search" enterkeyhint="search" placeholder="输入 author_id，如 196402633">
+      <input id="authorInput" type="search" enterkeyhint="search" placeholder="用户 ID 或主页链接，如 https://www.douban.com/people/196402633/">
       <div id="suggest" class="suggest"></div>
       <button id="searchBtn" type="submit">查询</button>
     </form>
@@ -24,7 +24,7 @@
 
   <main class="container">
     <section id="welcome" class="welcome">
-      <p>输入豆瓣用户 <code>author_id</code> 查询其历史发言（主帖 + 回复），按小组统计、按时间排序。</p>
+      <p>输入用户 ID，或粘贴豆瓣主页链接（如 <code>https://www.douban.com/people/196402633/</code>），查询历史发言（主帖 + 回复）。</p>
       <div id="hotAuthors" class="hot-authors"></div>
     </section>
 
@@ -33,7 +33,7 @@
         <div class="author-head">
           <h1 id="authorName">-</h1>
           <span id="authorId" class="author-id"></span>
-          <span style="margin-left:auto;display:flex;gap:8px">
+          <span class="author-actions">
             <a id="homeBtn" class="button secondary compact" target="_blank" rel="noopener">豆瓣主页 ↗</a>
             <a id="exportBtn" class="button secondary compact">导出 CSV</a>
           </span>
@@ -53,11 +53,11 @@
             <button class="segment" type="button" data-type="reply">回复</button>
           </div>
           <input id="keywordInput" class="keyword-input" type="search" placeholder="关键词过滤" enterkeyhint="search">
-          <div class="date-range">
-            <input id="minDate" type="date" title="开始日期">
-            <span class="date-sep">~</span>
-            <input id="maxDate" type="date" title="结束日期">
-          </div>
+           <div class="date-range">
+             <input id="minDate" type="date" title="开始日期" autocomplete="off">
+             <span class="date-sep">~</span>
+             <input id="maxDate" type="date" title="结束日期" autocomplete="off">
+           </div>
           <button id="clearFilterBtn" class="button secondary compact" type="button">清除筛选</button>
         </div>
       </div>
@@ -93,6 +93,30 @@
 
   <button id="backTop" class="back-top" type="button" aria-label="回到顶部">↑</button>
 
-  <script src="/static/app.js?v=2"></script>
+  <div id="miniCal" class="mini-cal hidden" role="dialog" aria-label="选择日期">
+    <div class="mini-cal-head">
+      <button id="miniCalPrev" type="button" aria-label="上一月">‹</button>
+      <div id="miniCalTitle" class="mini-cal-title"></div>
+      <button id="miniCalNext" type="button" aria-label="下一月">›</button>
+    </div>
+    <div class="mini-cal-week">
+      <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+    </div>
+    <div id="miniCalDays" class="mini-cal-days"></div>
+    <div class="mini-cal-actions">
+      <button id="miniCalClear" type="button">清除</button>
+      <button id="miniCalToday" type="button">今天</button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading hidden" aria-live="polite" aria-busy="true">
+    <div class="loading-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="loading-title">查询中</div>
+      <div class="loading-sub">正在读取发言，请稍候</div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=9"></script>
 </body>
 </html>
